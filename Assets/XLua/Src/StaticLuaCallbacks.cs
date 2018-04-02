@@ -29,7 +29,7 @@ namespace XLua
         internal LuaCSFunction StaticCSFunctionWraper, FixCSFunctionWraper;
 
         internal LuaCSFunction DelegateCtor;
-        
+
         public StaticLuaCallbacks()
         {
             GcMeta = new LuaCSFunction(StaticLuaCallbacks.LuaGC);
@@ -94,7 +94,7 @@ namespace XLua
                 LuaCSFunction func = (LuaCSFunction)translator.FastGetCSObj(L, LuaAPI.xlua_upvalueindex(1));
                 return func(L);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 return LuaAPI.luaL_error(L, "c# exception in StaticCSFunction:" + e);
             }
@@ -902,6 +902,10 @@ namespace XLua
                 string className = LuaAPI.lua_tostring(L, idx);
                 return translator.FindType(className);
             }
+            else if (translator.GetObject(L, idx) is Type)
+            {
+                return translator.GetObject(L, idx) as Type;
+            }
             else
             {
                 return null;
@@ -984,7 +988,7 @@ namespace XLua
                 {
                     return LuaAPI.luaL_error(L, "xlua.private_accessible, can not find c# type");
                 }
-
+                translator.GetTypeId(L, type);//解决从未访问过一个类型，调用xlua.private_accessible会报错的问题
                 Utils.MakePrivateAccessible(L, type);
                 return 0;
             }
@@ -1077,6 +1081,21 @@ namespace XLua
             catch (Exception e)
             {
                 return LuaAPI.luaL_error(L, "c# exception in ToFunction: " + e);
+            }
+        }
+
+        [MonoPInvokeCallback(typeof(LuaCSFunction))]
+        public static int ReleaseCsObject(RealStatePtr L)
+        {
+            try
+            {
+                ObjectTranslator translator = ObjectTranslatorPool.Instance.Find(L);
+                translator.ReleaseCSObj(L, 1);
+                return 0;
+            }
+            catch (Exception e)
+            {
+                return LuaAPI.luaL_error(L, "c# exception in ReleaseCsObject: " + e);
             }
         }
     }
